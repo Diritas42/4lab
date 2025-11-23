@@ -2,6 +2,7 @@
 import Player from './Player.js';
 import Enemy from './Enemy.js';
 import Level from './Level.js';
+import Document from './Document.js';
 
 /**
  * Основной класс игры, управляющий игровым процессом
@@ -15,13 +16,15 @@ class Game {
         
         this.player = null;
         this.enemies = [];
+        this.documents = [];
         this.currentLevel = 0;
         this.level = null;
         this.levels = [];
-        this.gameState = 'playing'; // playing, detected, levelComplete
+        this.gameState = 'playing'; // playing, detected, levelComplete, gameOver
         
         this.keys = {};
         this.detectionLevel = 0;
+        this.isAlertMode = false;
         
         this.initLevels();
     }
@@ -47,15 +50,24 @@ class Game {
                 [100, 100, 200, 20],
                 [400, 150, 20, 200],
                 [200, 300, 300, 20],
-                [50, 400, 150, 20]
+                [50, 400, 150, 20],
+                [500, 100, 20, 150],
+                [600, 200, 150, 20]
             ],
             [
                 // Враги: [x, y, patrolPath]
                 [300, 200, [[300, 200], [500, 200]]],
-                [150, 350, [[150, 350], [150, 450]]]
+                [150, 350, [[150, 350], [150, 450]]],
+                [550, 150, [[550, 150], [550, 250]]]
             ],
             [700, 450], // Выход
-            [50, 50] // Стартовая позиция игрока
+            [50, 50], // Стартовая позиция игрока
+            [
+                // Документы: [x, y]
+                [200, 150],
+                [450, 300],
+                [650, 400]
+            ]
         ));
         
         // Уровень 2 - Средний
@@ -67,15 +79,23 @@ class Game {
                 [100, 350, 600, 20],
                 [680, 50, 20, 300],
                 [250, 150, 20, 150],
-                [450, 150, 20, 150]
+                [450, 150, 20, 150],
+                [300, 250, 200, 20]
             ],
             [
                 [200, 100, [[200, 100], [200, 300]]],
                 [300, 100, [[300, 100], [500, 100]]],
-                [500, 300, [[500, 300], [300, 300]]]
+                [500, 300, [[500, 300], [300, 300]]],
+                [400, 200, [[400, 200], [400, 350]]]
             ],
             [650, 200],
-            [150, 100]
+            [150, 100],
+            [
+                [300, 150],
+                [500, 150],
+                [400, 300],
+                [600, 300]
+            ]
         ));
         
         // Уровень 3 - Сложный
@@ -90,16 +110,25 @@ class Game {
                 [150, 150, 20, 150],
                 [150, 300, 500, 20],
                 [630, 150, 20, 150],
-                [250, 250, 300, 20]
+                [250, 250, 300, 20],
+                [350, 100, 20, 100]
             ],
             [
                 [200, 200, [[200, 200], [400, 200]]],
                 [400, 200, [[400, 200], [400, 400]]],
                 [500, 400, [[500, 400], [200, 400]]],
-                [300, 300, [[300, 300], [500, 300]]]
+                [300, 300, [[300, 300], [500, 300]]],
+                [400, 100, [[400, 100], [600, 100]]]
             ],
             [700, 400],
-            [100, 100]
+            [100, 100],
+            [
+                [200, 100],
+                [500, 200],
+                [300, 350],
+                [600, 350],
+                [400, 450]
+            ]
         ));
     }
     
@@ -111,10 +140,23 @@ class Game {
         this.currentLevel = levelIndex;
         this.level = this.levels[levelIndex];
         this.player = new Player(this.level.startPosition[0], this.level.startPosition[1]);
-        this.enemies = this.level.enemies.map(data => new Enemy(data[0], data[1], data[2]));
+        
+        // Создание врагов
+        this.enemies = this.level.enemies.map(data => 
+            new Enemy(data[0], data[1], data[2], this.level.walls)
+        );
+        
+        // Создание документов
+        this.documents = this.level.documents.map(data => 
+            new Document(data[0], data[1])
+        );
+        
         this.detectionLevel = 0;
+        this.isAlertMode = false;
         this.gameState = 'playing';
         document.getElementById('levelDisplay').textContent = this.level.number;
+        document.getElementById('documentsDisplay').textContent = 
+            `0/${this.documents.length}`;
         document.getElementById('nextLevelBtn').style.display = 'none';
         document.getElementById('alert').style.display = 'none';
         
@@ -129,8 +171,13 @@ class Game {
         document.addEventListener('keydown', (e) => {
             this.keys[e.code] = true;
             
+            // Устранение врага
+            if (e.code === 'Space' && this.gameState === 'playing') {
+                this.player.eliminateEnemy(this.enemies);
+            }
+            
             // Сброс игры при обнаружении
-            if (this.gameState === 'detected' && e.code === 'Space') {
+            if (this.gameState === 'gameOver' && e.code === 'Space') {
                 this.restartLevel();
             }
         });
@@ -152,27 +199,49 @@ class Game {
         // Обновление врагов и проверка обнаружения
         let detected = false;
         this.enemies.forEach(enemy => {
-            enemy.update();
-            if (enemy.detectPlayer(this.player.x, this.player.y, this.level.walls)) {
-                detected = true;
+            if (!enemy.isEliminated) {
+                enemy.update(this.player.x, this.player.y, this.isAlertMode);
+                
+                // Проверка обнаружения игрока
+                if (enemy.detectPlayer(this.player.x, this.player.y, this.level.walls)) {
+                    detected = true;
+                    
+                    // Если враг обнаружил игрока, переводим в режим тревоги
+                    if (!this.isAlertMode) {
+                        this.detectionLevel = Math.min(100, this.detectionLevel + 3);
+                    }
+                }
+                
+                // Проверка столкновения с игроком
+                if (enemy.checkCollisionWithPlayer(this.player) && !enemy.isEliminated) {
+                    this.gameOver();
+                }
             }
         });
         
         // Обновление уровня обнаружения
-        if (detected) {
+        if (detected && !this.isAlertMode) {
             this.detectionLevel = Math.min(100, this.detectionLevel + 2);
-        } else {
+        } else if (!this.isAlertMode) {
             this.detectionLevel = Math.max(0, this.detectionLevel - 1);
+        }
+        
+        // Активация режима тревоги
+        if (this.detectionLevel >= 100 && !this.isAlertMode) {
+            this.activateAlertMode();
         }
         
         document.getElementById('detectionDisplay').textContent = `${this.detectionLevel}%`;
         
-        // Проверка полного обнаружения
-        if (this.detectionLevel >= 100) {
-            this.gameState = 'detected';
-            document.getElementById('alertText').textContent = 'ОБНАРУЖЕН!';
-            document.getElementById('alert').style.display = 'block';
-        }
+        // Проверка сбора документов
+        this.documents.forEach(doc => {
+            if (!doc.isCollected && doc.checkCollision(this.player)) {
+                doc.collect();
+                const collectedCount = this.documents.filter(d => d.isCollected).length;
+                document.getElementById('documentsDisplay').textContent = 
+                    `${collectedCount}/${this.documents.length}`;
+            }
+        });
         
         // Проверка достижения выхода
         const exit = this.level.exit;
@@ -182,7 +251,55 @@ class Game {
         );
         
         if (distanceToExit < 20) {
+            this.checkLevelCompletion();
+        }
+    }
+    
+    /**
+     * Активация режима тревоги
+     */
+    activateAlertMode() {
+        this.isAlertMode = true;
+        this.detectionLevel = 100;
+        
+        // Все враги переходят в режим преследования
+        this.enemies.forEach(enemy => {
+            if (!enemy.isEliminated) {
+                enemy.alert(this.player.x, this.player.y);
+            }
+        });
+        
+        document.getElementById('alertText').textContent = 'ТРЕВОГА!';
+        document.getElementById('alert').style.display = 'block';
+        
+        // Скрываем предупреждение через 2 секунды
+        setTimeout(() => {
+            if (this.gameState === 'playing') {
+                document.getElementById('alert').style.display = 'none';
+            }
+        }, 2000);
+    }
+    
+    /**
+     * Проверка завершения уровня
+     */
+    checkLevelCompletion() {
+        // Проверяем, собраны ли все документы
+        const allDocumentsCollected = this.documents.every(doc => doc.isCollected);
+        
+        if (allDocumentsCollected) {
             this.levelComplete();
+        } else {
+            document.getElementById('alertText').textContent = 'СОБЕРИТЕ ВСЕ ДОКУМЕНТЫ!';
+            document.getElementById('alertText').style.color = '#ffcc00';
+            document.getElementById('alert').style.display = 'block';
+            
+            // Скрываем предупреждение через 2 секунды
+            setTimeout(() => {
+                if (this.gameState === 'playing') {
+                    document.getElementById('alert').style.display = 'none';
+                }
+            }, 2000);
         }
     }
     
@@ -197,15 +314,23 @@ class Game {
         // Отрисовка уровня
         this.level.render(this.ctx);
         
+        // Отрисовка документов
+        this.documents.forEach(doc => doc.render(this.ctx));
+        
         // Отрисовка врагов
-        this.enemies.forEach(enemy => enemy.render(this.ctx));
+        this.enemies.forEach(enemy => {
+            if (!enemy.isEliminated) {
+                enemy.render(this.ctx, this.isAlertMode);
+            }
+        });
         
         // Отрисовка игрока
         this.player.render(this.ctx);
         
         // Отрисовка индикатора обнаружения
         if (this.detectionLevel > 0) {
-            this.ctx.fillStyle = `rgba(255, 0, 0, ${this.detectionLevel/200})`;
+            const alpha = this.isAlertMode ? 0.3 : this.detectionLevel/200;
+            this.ctx.fillStyle = `rgba(255, 0, 0, ${alpha})`;
             this.ctx.fillRect(0, 0, this.width, this.height);
         }
     }
@@ -233,6 +358,16 @@ class Game {
             document.getElementById('alertText').style.color = '#4CAF50';
             document.getElementById('alert').style.display = 'block';
         }
+    }
+    
+    /**
+     * Конец игры
+     */
+    gameOver() {
+        this.gameState = 'gameOver';
+        document.getElementById('alertText').textContent = 'МИССИЯ ПРОВАЛЕНА!';
+        document.getElementById('alertText').style.color = '#ff4444';
+        document.getElementById('alert').style.display = 'block';
     }
     
     /**
