@@ -12,6 +12,7 @@ class Player {
         this.runSpeed = 4;
         this.color = '#4CAF50';
         this.direction = 0; // 0: вправо, 1: влево, 2: вверх, 3: вниз
+        this.eliminationCooldown = 0;
     }
     
     /**
@@ -39,6 +40,11 @@ class Player {
         if (keys['KeyD'] || keys['ArrowRight']) {
             moveX = speed;
             this.direction = 0;
+        }
+        
+        // Обновление кулдауна устранения
+        if (this.eliminationCooldown > 0) {
+            this.eliminationCooldown--;
         }
         
         // Применение движения с проверкой коллизий
@@ -69,6 +75,10 @@ class Player {
                 break;
             }
         }
+        
+        // Ограничение движения в пределах canvas
+        this.x = Math.max(0, Math.min(this.x, 800 - this.width));
+        this.y = Math.max(0, Math.min(this.y, 500 - this.height));
     }
     
     /**
@@ -83,6 +93,22 @@ class Player {
             this.y < wall[1] + wall[3] &&
             this.y + this.height > wall[1]
         );
+    }
+    
+    /**
+     * Устранение врага
+     * @param {Array} enemies - массив врагов
+     */
+    eliminateEnemy(enemies) {
+        if (this.eliminationCooldown > 0) return;
+        
+        for (const enemy of enemies) {
+            if (!enemy.isEliminated && enemy.canBeEliminated(this.x, this.y, this.direction)) {
+                enemy.eliminate();
+                this.eliminationCooldown = 30; // 0.5 секунды кулдауна
+                break;
+            }
+        }
     }
     
     /**
