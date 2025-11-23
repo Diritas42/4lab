@@ -12,9 +12,6 @@ class Player {
         this.runSpeed = 4;
         this.color = '#4CAF50';
         this.direction = 0; // 0: вправо, 1: влево, 2: вверх, 3: вниз
-        this.eliminationCooldown = 0;
-        this.canEliminate = false;
-        this.nearestEnemy = null;
     }
     
     /**
@@ -42,11 +39,6 @@ class Player {
         if (keys['KeyD'] || keys['ArrowRight']) {
             moveX = speed;
             this.direction = 0;
-        }
-        
-        // Обновление кулдауна устранения
-        if (this.eliminationCooldown > 0) {
-            this.eliminationCooldown--;
         }
         
         // Применение движения с проверкой коллизий
@@ -95,38 +87,6 @@ class Player {
             this.y < wall[1] + wall[3] &&
             this.y + this.height > wall[1]
         );
-    }
-    
-    /**
-     * Устранение врага
-     * @param {Array} enemies - массив врагов
-     */
-    eliminateEnemy(enemies) {
-        if (this.eliminationCooldown > 0) return;
-        
-        // Автоматически находим ближайшего врага, которого можно устранить
-        let closestEnemy = null;
-        let minDistance = Infinity;
-        
-        for (const enemy of enemies) {
-            if (!enemy.isEliminated && enemy.canBeEliminated(this.x, this.y, this.direction)) {
-                const distance = Math.sqrt(
-                    Math.pow(this.x - enemy.x, 2) + 
-                    Math.pow(this.y - enemy.y, 2)
-                );
-                
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    closestEnemy = enemy;
-                }
-            }
-        }
-        
-        // Устраняем ближайшего врага
-        if (closestEnemy) {
-            closestEnemy.eliminate();
-            this.eliminationCooldown = 30; // 0.5 секунды кулдауна
-        }
     }
     
     /**
