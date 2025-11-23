@@ -31,8 +31,8 @@
                     <span id="documentsDisplay" class="value">0/0</span>
                 </div>
                 <div class="info-item">
-                    <span class="label">Управление:</span>
-                    <span class="value">WASD + Shift + Пробел</span>
+                    <span class="label">Устранено:</span>
+                    <span id="eliminatedDisplay" class="value">0/0</span>
                 </div>
             </div>
         </div>
@@ -41,11 +41,12 @@
             <canvas id="gameCanvas" width="800" height="500"></canvas>
             <div id="alert" class="alert">
                 <span id="alertText">ОБНАРУЖЕН!</span>
+                <p id="alertSubtext" class="alert-subtext">Нажмите R для перезапуска уровня</p>
             </div>
         </div>
 
         <div class="controls">
-            <button id="restartBtn" class="btn">Перезапуск уровня</button>
+            <button id="restartBtn" class="btn">Перезапуск уровня (R)</button>
             <button id="nextLevelBtn" class="btn" style="display: none;">Следующий уровень</button>
         </div>
 
@@ -54,6 +55,7 @@
             <p>Используйте WASD для движения, Shift для бега и Пробел для устранения врагов сзади.</p>
             <p>Соберите все секретные документы (жёлтые) и достигните выхода (синий).</p>
             <p>Красные зоны - зоны видимости врагов. При полном обнаружении начинается погоня!</p>
+            <p>Устранив более 50% врагов, вы активируете режим повышенной готовности!</p>
         </div>
     </main>
 
