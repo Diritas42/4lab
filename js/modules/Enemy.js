@@ -14,14 +14,14 @@ class Enemy {
         this.alertSpeed = 2.5;
         this.color = '#f44336';
         this.alertColor = '#ff6b6b';
-        this.highAlertColor = '#ffcc00';
+        this.enhancedColor = '#ff4444';
         this.detectionRange = 150;
         this.detectionAngle = Math.PI / 3; // 60 градусов
         this.blindSpotAngle = Math.PI / 6; // 30 градусов сзади
         this.direction = 0; // Направление взгляда
         this.isAlerted = false;
-        this.isHighAlert = false;
         this.isEliminated = false;
+        this.isVigilanceEnhanced = false;
         this.walls = walls;
         this.chaseTarget = null;
         this.stuckCounter = 0;
@@ -33,11 +33,10 @@ class Enemy {
      * Обновление состояния врага
      * @param {number} playerX - координата X игрока
      * @param {number} playerY - координата Y игрока
-     * @param {boolean} isAlertMode - режим тревоги
-     * @param {boolean} isHighAlertMode - режим повышенной готовности
-     * @param {Array} enemies - массив всех врагов
+     * @param {boolean} isGlobalAlert - глобальная тревога
+     * @param {Array} allEnemies - все враги на уровне
      */
-    update(playerX, playerY, isAlertMode, isHighAlertMode, enemies) {
+    update(playerX, playerY, isGlobalAlert, allEnemies) {
         if (this.isEliminated) return;
         
         // Проверка, не застрял ли враг
@@ -57,55 +56,41 @@ class Enemy {
         }
         
         // Если глобальная тревога или враг уже был предупрежден
-        if (isAlertMode || this.isAlerted) {
+        if (isGlobalAlert || this.isAlerted) {
             this.chasePlayer(playerX, playerY);
-        } else if (this.isHighAlert) {
-            // В режиме повышенной готовности враги продолжают патрулировать, но с повышенной бдительностью
-            this.patrol();
         } else {
             this.patrol();
         }
         
         // Проверка коллизий с другими врагами
-        this.resolveEnemyCollisions(enemies);
+        this.checkEnemyCollisions(allEnemies);
     }
     
     /**
-     * Разрешение коллизий с другими врагами
-     * @param {Array} enemies - массив всех врагов
+     * Проверка коллизий с другими врагами
+     * @param {Array} allEnemies - все враги на уровне
      */
-    resolveEnemyCollisions(enemies) {
-        for (const enemy of enemies) {
+    checkEnemyCollisions(allEnemies) {
+        for (const enemy of allEnemies) {
             if (enemy !== this && !enemy.isEliminated && this.checkCollisionWithEnemy(enemy)) {
-                // Вычисляем вектор от текущего врага к другому
-                const dx = enemy.x - this.x;
-                const dy = enemy.y - this.y;
+                // Отталкивание от другого врага
+                const dx = this.x - enemy.x;
+                const dy = this.y - enemy.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
-                if (distance === 0) continue; // Избегаем деления на ноль
-                
-                // Минимальное расстояние, при котором коллизии нет
-                const minDistance = this.width;
-                
-                // Если враги слишком близко, отталкиваем их друг от друга
-                if (distance < minDistance) {
-                    const pushForce = (minDistance - distance) / distance;
-                    const pushX = dx * pushForce * 0.5;
-                    const pushY = dy * pushForce * 0.5;
+                if (distance > 0) {
+                    const pushForce = 0.5;
+                    this.x += (dx / distance) * pushForce;
+                    this.y += (dy / distance) * pushForce;
                     
-                    // Сдвигаем текущего врага
-                    this.x -= pushX;
-                    this.y -= pushY;
-                    
-                    // Сдвигаем другого врага
-                    enemy.x += pushX;
-                    enemy.y += pushY;
-                    
-                    // Ограничиваем позиции в пределах canvas
-                    this.x = Math.max(0, Math.min(this.x, 800 - this.width));
-                    this.y = Math.max(0, Math.min(this.y, 500 - this.height));
-                    enemy.x = Math.max(0, Math.min(enemy.x, 800 - enemy.width));
-                    enemy.y = Math.max(0, Math.min(enemy.y, 500 - enemy.height));
+                    // Проверка коллизий со стенами после отталкивания
+                    for (const wall of this.walls) {
+                        if (this.checkCollision(wall)) {
+                            this.x -= (dx / distance) * pushForce;
+                            this.y -= (dy / distance) * pushForce;
+                            break;
+                        }
+                    }
                 }
             }
         }
@@ -113,15 +98,15 @@ class Enemy {
     
     /**
      * Проверка коллизии с другим врагом
-     * @param {Enemy} otherEnemy - другой враг
+     * @param {Enemy} enemy - другой враг
      * @returns {boolean} - есть ли коллизия
      */
-    checkCollisionWithEnemy(otherEnemy) {
+    checkCollisionWithEnemy(enemy) {
         return (
-            this.x < otherEnemy.x + otherEnemy.width &&
-            this.x + this.width > otherEnemy.x &&
-            this.y < otherEnemy.y + otherEnemy.height &&
-            this.y + this.height > otherEnemy.y
+            this.x < enemy.x + enemy.width &&
+            this.x + this.width > enemy.x &&
+            this.y < enemy.y + enemy.height &&
+            this.y + this.height > enemy.y
         );
     }
     
@@ -275,35 +260,27 @@ class Enemy {
      * @param {number} playerX - координата X игрока
      * @param {number} playerY - координата Y игрока
      * @param {Array} walls - массив стен
-     * @param {boolean} isHighAlertMode - режим повышенной готовности
-     * @returns {Object} - результат обнаружения
+     * @returns {boolean} - обнаружен ли игрок
      */
-    detectPlayer(playerX, playerY, walls, isHighAlertMode) {
-        if (this.isEliminated) return { detected: false, instant: false };
+    detectPlayer(playerX, playerY, walls) {
+        if (this.isEliminated) return false;
         
         const dx = playerX - this.x;
         const dy = playerY - this.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         // Проверка расстояния
-        if (distance > this.detectionRange) return { detected: false, instant: false };
+        if (distance > this.detectionRange) return false;
         
         // Проверка угла обзора
         const angleToPlayer = Math.atan2(dy, dx);
         const angleDiff = Math.abs(this.direction - angleToPlayer);
         const normalizedAngleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
         
-        if (Math.abs(normalizedAngleDiff) > this.detectionAngle / 2) return { detected: false, instant: false };
+        if (Math.abs(normalizedAngleDiff) > this.detectionAngle / 2) return false;
         
         // Проверка прямой видимости (нет стен между врагом и игроком)
-        const hasLineOfSight = this.hasLineOfSight(playerX, playerY, walls);
-        
-        // В режиме повышенной готовности обнаружение мгновенное
-        if (hasLineOfSight && (this.isHighAlert || isHighAlertMode)) {
-            return { detected: true, instant: true };
-        }
-        
-        return { detected: hasLineOfSight, instant: false };
+        return this.hasLineOfSight(playerX, playerY, walls);
     }
     
     /**
@@ -375,7 +352,7 @@ class Enemy {
      * @returns {boolean} - может ли быть устранен
      */
     canBeEliminated(playerX, playerY, playerDirection) {
-        if (this.isEliminated || this.isAlerted || this.isHighAlert) return false;
+        if (this.isEliminated || this.isAlerted || this.isVigilanceEnhanced) return false;
         
         // Проверка расстояния
         const dx = playerX - this.x;
@@ -424,35 +401,31 @@ class Enemy {
     }
     
     /**
-     * Активация режима повышенной готовности
+     * Усиление бдительности врага
      */
-    highAlert() {
-        this.isHighAlert = true;
-        // В режиме повышенной готовности враги не могут быть устранены
-        // и имеют мгновенное обнаружение
+    enhanceVigilance() {
+        this.isVigilanceEnhanced = true;
+        this.detectionRange *= 1.2; // Увеличиваем дальность обнаружения
     }
     
     /**
      * Отрисовка врага
      * @param {CanvasRenderingContext2D} ctx - контекст canvas
      * @param {boolean} isAlertMode - режим тревоги
-     * @param {boolean} isHighAlertMode - режим повышенной готовности
      */
-    render(ctx, isAlertMode, isHighAlertMode) {
+    render(ctx, isAlertMode) {
         if (this.isEliminated) return;
         
         // Тело врага
-        if (this.isHighAlert || isHighAlertMode) {
-            ctx.fillStyle = this.highAlertColor;
-        } else if (this.isAlerted) {
-            ctx.fillStyle = this.alertColor;
+        if (this.isVigilanceEnhanced) {
+            ctx.fillStyle = this.enhancedColor;
         } else {
-            ctx.fillStyle = this.color;
+            ctx.fillStyle = this.isAlerted ? this.alertColor : this.color;
         }
         ctx.fillRect(this.x, this.y, this.width, this.height);
         
         // Область видимости (для отладки)
-        if (!isAlertMode && !isHighAlertMode) {
+        if (!isAlertMode) {
             ctx.save();
             ctx.translate(this.x + this.width/2, this.y + this.height/2);
             ctx.rotate(this.direction);
@@ -460,7 +433,7 @@ class Enemy {
             ctx.moveTo(0, 0);
             ctx.arc(0, 0, this.detectionRange, -this.detectionAngle/2, this.detectionAngle/2);
             ctx.closePath();
-            ctx.fillStyle = 'rgba(255, 0, 0, 0.1)';
+            ctx.fillStyle = this.isVigilanceEnhanced ? 'rgba(255, 100, 100, 0.2)' : 'rgba(255, 0, 0, 0.1)';
             ctx.fill();
             ctx.restore();
         }
@@ -473,14 +446,14 @@ class Enemy {
         ctx.arc(eyeX, eyeY, 4, 0, Math.PI * 2);
         ctx.fill();
         
-        // Отображение состояния (тревога или повышенная готовность)
+        // Отображение состояния (тревога или усиленная бдительность)
         if (this.isAlerted) {
-            ctx.fillStyle = '#ff4444';
+            ctx.fillStyle = '#ffcc00';
             ctx.beginPath();
             ctx.arc(this.x + this.width/2, this.y - 10, 5, 0, Math.PI * 2);
             ctx.fill();
-        } else if (this.isHighAlert || isHighAlertMode) {
-            ctx.fillStyle = '#ffcc00';
+        } else if (this.isVigilanceEnhanced) {
+            ctx.fillStyle = '#ff4444';
             ctx.beginPath();
             ctx.arc(this.x + this.width/2, this.y - 10, 5, 0, Math.PI * 2);
             ctx.fill();
