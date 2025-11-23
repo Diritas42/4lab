@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metal Gear JS</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <h1>METAL GEAR JS</h1>
+        <p class="subtitle">Стелс-миссия</p>
+    </header>
+
+    <main>
+        <div class="game-info">
+            <div class="info-panel">
+                <div class="info-item">
+                    <span class="label">Уровень:</span>
+                    <span id="levelDisplay" class="value">1</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Обнаружение:</span>
+                    <span id="detectionDisplay" class="value">0%</span>
+                </div>
+            </div>
+            
+            <div class="info-panel">
+                <div class="info-item">
+                    <span class="label">Цель:</span>
+                    <span class="value">Достигнуть выхода</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Управление:</span>
+                    <span class="value">WASD + Shift</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-container">
+            <canvas id="gameCanvas" width="800" height="500"></canvas>
+            <div id="alert" class="alert">
+                <span id="alertText">ОБНАРУЖЕН!</span>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="restartBtn" class="btn">Перезапуск уровня</button>
+            <button id="nextLevelBtn" class="btn" style="display: none;">Следующий уровень</button>
+        </div>
+
+        <div class="instructions">
+            <h2>Инструкция</h2>
+            <p>Используйте клавиши WASD для движения и Shift для бега. Избегайте обнаружения врагами и достигните синего выхода.</p>
+            <p>Красные зоны - зоны видимости врагов. Бегите быстро, но шумно, или двигайтесь медленно и тихо.</p>
+        </div>
+    </main>
+
+    <footer>
+        <p>Metal Gear JS &copy;</p>
+    </footer>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>

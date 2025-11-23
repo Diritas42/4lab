@@ -1,0 +1,226 @@
+/* css/style.css */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Courier New', monospace;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: #e0e0e0;
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+header {
+    text-align: center;
+    padding: 2rem 1rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-bottom: 2px solid #4CAF50;
+}
+
+h1 {
+    color: #4CAF50;
+    font-size: 2.5rem;
+    text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+    margin-bottom: 0.5rem;
+    letter-spacing: 2px;
+}
+
+.subtitle {
+    color: #cccccc;
+    font-size: 1.2rem;
+    font-style: italic;
+}
+
+main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem;
+    max-width: 900px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.game-info {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 1.5rem;
+    gap: 1rem;
+}
+
+.info-panel {
+    background: rgba(42, 42, 42, 0.8);
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid #4CAF50;
+    flex: 1;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.info-item:last-child {
+    margin-bottom: 0;
+}
+
+.label {
+    color: #aaa;
+}
+
+.value {
+    color: #4CAF50;
+    font-weight: bold;
+}
+
+.game-container {
+    position: relative;
+    margin: 1rem 0;
+    width: 100%;
+}
+
+#gameCanvas {
+    display: block;
+    width: 100%;
+    max-width: 800px;
+    height: auto;
+    border: 2px solid #4CAF50;
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
+    background-color: #0a0a0a;
+}
+
+.alert {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.85);
+    color: #ff4444;
+    padding: 1.5rem 2rem;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 1.8rem;
+    font-weight: bold;
+    display: none;
+    border: 2px solid #ff4444;
+    box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+    z-index: 10;
+}
+
+.controls {
+    display: flex;
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.btn {
+    background: #4CAF50;
+    border: none;
+    color: white;
+    padding: 0.8rem 1.5rem;
+    text-align: center;
+    text-decoration: none;
+    font-size: 1rem;
+    cursor: pointer;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.btn:hover {
+    background: #45a049;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
+}
+
+.btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.instructions {
+    background: rgba(42, 42, 42, 0.8);
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #4CAF50;
+    width: 100%;
+    margin-top: 1rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.instructions h2 {
+    color: #4CAF50;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+}
+
+.instructions p {
+    margin-bottom: 0.8rem;
+    line-height: 1.5;
+}
+
+.instructions p:last-child {
+    margin-bottom: 0;
+}
+
+footer {
+    text-align: center;
+    padding: 1.5rem;
+    margin-top: 2rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-top: 1px solid #4CAF50;
+    color: #aaa;
+    font-size: 0.9rem;
+}
+
+/* Адаптивность */
+@media (max-width: 850px) {
+    .game-info {
+        flex-direction: column;
+    }
+    
+    h1 {
+        font-size: 2rem;
+    }
+    
+    .alert {
+        font-size: 1.5rem;
+        padding: 1rem 1.5rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .controls {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .btn {
+        width: 100%;
+    }
+    
+    h1 {
+        font-size: 1.8rem;
+    }
+    
+    .instructions {
+        padding: 1rem;
+    }
+    
+    .instructions h2 {
+        font-size: 1.3rem;
+    }
+}
