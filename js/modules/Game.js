@@ -175,6 +175,7 @@ class Game {
             `0/${this.documents.length}`;
         document.getElementById('nextLevelBtn').style.display = 'none';
         document.getElementById('alert').style.display = 'none';
+        document.getElementById('alertSubtext').style.display = 'none';
         
         // Сброс цвета текста алерта
         document.getElementById('alertText').style.color = '#ff4444';
@@ -218,6 +219,7 @@ class Game {
             // Оповещение о массовом устранении
             document.getElementById('alertText').textContent = 'ОБНАРУЖЕНА АКТИВНОСТЬ АГЕНТА!';
             document.getElementById('alertText').style.color = '#ffcc00';
+            document.getElementById('alertSubtext').style.display = 'none';
             document.getElementById('alert').style.display = 'block';
             
             // Усиление бдительности оставшихся врагов
@@ -321,6 +323,7 @@ class Game {
         });
         
         document.getElementById('alertText').textContent = 'ТРЕВОГА!';
+        document.getElementById('alertSubtext').style.display = 'none';
         document.getElementById('alert').style.display = 'block';
         
         // Скрываем предупреждение через 2 секунды
@@ -343,6 +346,7 @@ class Game {
         } else {
             document.getElementById('alertText').textContent = 'СОБЕРИТЕ ВСЕ ДОКУМЕНТЫ!';
             document.getElementById('alertText').style.color = '#ffcc00';
+            document.getElementById('alertSubtext').style.display = 'none';
             document.getElementById('alert').style.display = 'block';
             
             // Скрываем предупреждение через 2 секунды
@@ -407,6 +411,7 @@ class Game {
             // Игра завершена
             document.getElementById('alertText').textContent = 'МИССИЯ ВЫПОЛНЕНА!';
             document.getElementById('alertText').style.color = '#4CAF50';
+            document.getElementById('alertSubtext').style.display = 'none';
             document.getElementById('alert').style.display = 'block';
         }
     }
