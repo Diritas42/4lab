@@ -3,12 +3,13 @@
  * Класс уровня игры
  */
 class Level {
-    constructor(number, walls, enemies, exit, startPosition) {
+    constructor(number, walls, enemies, exit, startPosition, documents) {
         this.number = number;
         this.walls = walls;
         this.enemies = enemies;
         this.exit = exit;
         this.startPosition = startPosition;
+        this.documents = documents;
     }
     
     /**
