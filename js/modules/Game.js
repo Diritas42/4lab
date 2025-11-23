@@ -25,7 +25,7 @@ class Game {
         this.keys = {};
         this.detectionLevel = 0;
         this.isAlertMode = false;
-        this.isHighAlertMode = false; // Режим повышенной готовности
+        this.massEliminationDetected = false;
         
         this.initLevels();
     }
@@ -168,13 +168,11 @@ class Game {
         
         this.detectionLevel = 0;
         this.isAlertMode = false;
-        this.isHighAlertMode = false;
+        this.massEliminationDetected = false;
         this.gameState = 'playing';
         document.getElementById('levelDisplay').textContent = this.level.number;
         document.getElementById('documentsDisplay').textContent = 
             `0/${this.documents.length}`;
-        document.getElementById('eliminatedDisplay').textContent = 
-            `0/${this.enemies.length}`;
         document.getElementById('nextLevelBtn').style.display = 'none';
         document.getElementById('alert').style.display = 'none';
         
@@ -190,10 +188,9 @@ class Game {
             this.keys[e.code] = true;
             
             // Устранение врага
-            if (e.code === 'Space' && this.gameState === 'playing') {
-                this.player.eliminateEnemy(this.enemies, this.isHighAlertMode);
-                this.updateEliminatedDisplay();
-                this.checkHighAlertCondition();
+            if (e.code === 'KeyQ' && this.gameState === 'playing') {
+                this.player.eliminateEnemy(this.enemies);
+                this.checkMassElimination();
             }
             
             // Перезапуск уровня по R
@@ -208,6 +205,38 @@ class Game {
     }
     
     /**
+     * Проверка массового устранения врагов
+     */
+    checkMassElimination() {
+        const totalEnemies = this.enemies.length;
+        const eliminatedEnemies = this.enemies.filter(enemy => enemy.isEliminated).length;
+        
+        // Если устранено более 50% врагов
+        if (eliminatedEnemies > totalEnemies / 2 && !this.massEliminationDetected) {
+            this.massEliminationDetected = true;
+            
+            // Оповещение о массовом устранении
+            document.getElementById('alertText').textContent = 'ОБНАРУЖЕНА АКТИВНОСТЬ АГЕНТА!';
+            document.getElementById('alertText').style.color = '#ffcc00';
+            document.getElementById('alert').style.display = 'block';
+            
+            // Усиление бдительности оставшихся врагов
+            this.enemies.forEach(enemy => {
+                if (!enemy.isEliminated) {
+                    enemy.enhanceVigilance();
+                }
+            });
+            
+            // Скрываем предупреждение через 3 секунды
+            setTimeout(() => {
+                if (this.gameState === 'playing') {
+                    document.getElementById('alert').style.display = 'none';
+                }
+            }, 3000);
+        }
+    }
+    
+    /**
      * Обновление состояния игры
      */
     update() {
@@ -218,23 +247,19 @@ class Game {
         
         // Обновление врагов и проверка обнаружения
         let detected = false;
+        let detectionMultiplier = this.massEliminationDetected ? 2 : 1;
+        
         this.enemies.forEach(enemy => {
             if (!enemy.isEliminated) {
-                enemy.update(this.player.x, this.player.y, this.isAlertMode, this.isHighAlertMode, this.enemies);
+                enemy.update(this.player.x, this.player.y, this.isAlertMode, this.enemies);
                 
                 // Проверка обнаружения игрока
-                const detectionResult = enemy.detectPlayer(this.player.x, this.player.y, this.level.walls, this.isHighAlertMode);
-                if (detectionResult.detected) {
+                if (enemy.detectPlayer(this.player.x, this.player.y, this.level.walls)) {
                     detected = true;
                     
                     // Если враг обнаружил игрока, переводим в режим тревоги
                     if (!this.isAlertMode) {
-                        // В режиме повышенной готовности обнаружение мгновенное
-                        if (this.isHighAlertMode) {
-                            this.detectionLevel = 100;
-                        } else {
-                            this.detectionLevel = Math.min(100, this.detectionLevel + 3);
-                        }
+                        this.detectionLevel = Math.min(100, this.detectionLevel + 3 * detectionMultiplier);
                     }
                 }
                 
@@ -247,11 +272,8 @@ class Game {
         
         // Обновление уровня обнаружения
         if (detected && !this.isAlertMode) {
-            // В режиме повышенной готовности обнаружение уже на 100%
-            if (!this.isHighAlertMode) {
-                this.detectionLevel = Math.min(100, this.detectionLevel + 2);
-            }
-        } else if (!this.isAlertMode && !this.isHighAlertMode) {
+            this.detectionLevel = Math.min(100, this.detectionLevel + 2 * detectionMultiplier);
+        } else if (!this.isAlertMode) {
             this.detectionLevel = Math.max(0, this.detectionLevel - 1);
         }
         
@@ -310,53 +332,6 @@ class Game {
     }
     
     /**
-     * Проверка условия для активации режима повышенной готовности
-     */
-    checkHighAlertCondition() {
-        const totalEnemies = this.enemies.length;
-        const eliminatedEnemies = this.enemies.filter(e => e.isEliminated).length;
-        
-        // Если устранено более 50% врагов
-        if (eliminatedEnemies > totalEnemies / 2 && !this.isHighAlertMode) {
-            this.activateHighAlertMode();
-        }
-    }
-    
-    /**
-     * Активация режима повышенной готовности
-     */
-    activateHighAlertMode() {
-        this.isHighAlertMode = true;
-        
-        // Все оставшиеся враги переходят в режим повышенной готовности
-        this.enemies.forEach(enemy => {
-            if (!enemy.isEliminated) {
-                enemy.highAlert();
-            }
-        });
-        
-        document.getElementById('alertText').textContent = 'РЕЖИМ ПОВЫШЕННОЙ ГОТОВНОСТИ!';
-        document.getElementById('alertText').style.color = '#ffcc00';
-        document.getElementById('alert').style.display = 'block';
-        
-        // Скрываем предупреждение через 3 секунды
-        setTimeout(() => {
-            if (this.gameState === 'playing') {
-                document.getElementById('alert').style.display = 'none';
-            }
-        }, 3000);
-    }
-    
-    /**
-     * Обновление счетчика устраненных врагов
-     */
-    updateEliminatedDisplay() {
-        const eliminatedCount = this.enemies.filter(e => e.isEliminated).length;
-        document.getElementById('eliminatedDisplay').textContent = 
-            `${eliminatedCount}/${this.enemies.length}`;
-    }
-    
-    /**
      * Проверка завершения уровня
      */
     checkLevelCompletion() {
@@ -396,7 +371,7 @@ class Game {
         // Отрисовка врагов
         this.enemies.forEach(enemy => {
             if (!enemy.isEliminated) {
-                enemy.render(this.ctx, this.isAlertMode, this.isHighAlertMode);
+                enemy.render(this.ctx, this.isAlertMode);
             }
         });
         
