@@ -31,6 +31,8 @@ class Enemy {
         this.debugMode = debugMode;
         this.collisionCount = 0;
         this.lastCollisionReport = 0;
+        this.isStuck = false;
+        this.stuckTime = 0;
     }
     
     /**
@@ -39,29 +41,40 @@ class Enemy {
      * @param {number} playerY - координата Y игрока
      * @param {boolean} isGlobalAlert - глобальная тревога
      * @param {Array} allEnemies - все враги на уровне
+     * @param {boolean} enableEnemyCollisions - включены ли коллизии между врагами
      */
-    update(playerX, playerY, isGlobalAlert, allEnemies) {
+    update(playerX, playerY, isGlobalAlert, allEnemies, enableEnemyCollisions = false) {
         if (this.isEliminated) return;
         
         // Проверка, не застрял ли враг
         if (Math.abs(this.x - this.lastX) < 0.1 && Math.abs(this.y - this.lastY) < 0.1) {
             this.stuckCounter++;
+            if (this.stuckCounter > 60 && !this.isStuck) { // Застрял на 1 секунду
+                this.isStuck = true;
+                this.stuckTime = Date.now();
+                if (this.debugMode) {
+                    console.warn(`Враг застрял! Позиция: [${Math.round(this.x)}, ${Math.round(this.y)}]`);
+                }
+            }
         } else {
             this.stuckCounter = 0;
             this.pathfindingAttempts = 0;
+            this.isStuck = false;
         }
         
         this.lastX = this.x;
         this.lastY = this.y;
         
         // Если враг застрял, попробовать другой путь
-        if (this.stuckCounter > 30 && this.pathfindingAttempts < 5) { // Застрял на 0.5 секунды
-            this.currentTarget = (this.currentTarget + 1) % this.patrolPath.length;
-            this.stuckCounter = 0;
-            this.pathfindingAttempts++;
-            
-            if (this.debugMode) {
-                console.log(`Враг застрял, меняем цель на ${this.currentTarget}`);
+        if (this.isStuck) {
+            const stuckDuration = Date.now() - this.stuckTime;
+            if (stuckDuration > 2000) { // Если застрял более 2 секунд
+                this.currentTarget = (this.currentTarget + 1) % this.patrolPath.length;
+                this.isStuck = false;
+                this.stuckCounter = 0;
+                if (this.debugMode) {
+                    console.log(`Враг сменил цель из-за застревания. Новая цель: ${this.currentTarget}`);
+                }
             }
         }
         
@@ -72,8 +85,10 @@ class Enemy {
             this.patrol();
         }
         
-        // Проверка коллизий с другими врагами
-        this.checkEnemyCollisions(allEnemies);
+        // Проверка коллизий с другими врагами только если включено
+        if (enableEnemyCollisions) {
+            this.checkEnemyCollisions(allEnemies);
+        }
     }
     
     /**
@@ -132,6 +147,8 @@ class Enemy {
             
             if (distance < 5) {
                 this.currentTarget = (this.currentTarget + 1) % this.patrolPath.length;
+                this.isStuck = false;
+                this.stuckCounter = 0;
             } else {
                 this.moveTowards(target[0], target[1], this.speed);
                 
@@ -208,53 +225,18 @@ class Enemy {
             }
         }
         
-        // Если есть коллизия по обеим осям, пробуем двигаться по диагонали
+        // Если есть коллизия по обеим осям, враг останавливается
         if (collisionX && collisionY) {
-            // Пробуем двигаться только по X
-            this.x = originalX + moveX;
+            // Враг останавливается и не пытается двигаться дальше
+            this.x = originalX;
             this.y = originalY;
             
-            let canMoveX = true;
-            for (const wall of this.walls) {
-                if (this.checkCollision(wall)) {
-                    canMoveX = false;
-                    break;
-                }
-            }
-            
-            // Пробуем двигаться только по Y
-            this.x = originalX;
-            this.y = originalY + moveY;
-            
-            let canMoveY = true;
-            for (const wall of this.walls) {
-                if (this.checkCollision(wall)) {
-                    canMoveY = false;
-                    break;
-                }
-            }
-            
-            // Если можем двигаться только по одной оси, делаем это
-            if (canMoveX && !canMoveY) {
-                this.x = originalX + moveX;
-                this.y = originalY;
-            } else if (!canMoveX && canMoveY) {
-                this.x = originalX;
-                this.y = originalY + moveY;
-            } else {
-                // Не можем двигаться ни по одной оси - попробуем обойти препятствие
-                const randomAngle = Math.random() * Math.PI * 2;
-                this.x = originalX + Math.cos(randomAngle) * this.speed;
-                this.y = originalY + Math.sin(randomAngle) * this.speed;
-                
-                // Проверяем, не столкнулись ли мы снова
-                for (const wall of this.walls) {
-                    if (this.checkCollision(wall)) {
-                        this.x = originalX;
-                        this.y = originalY;
-                        this.reportCollision(wall, 'RANDOM');
-                        break;
-                    }
+            // Если враг застрял, меняем цель патрулирования
+            if (!this.isStuck) {
+                this.isStuck = true;
+                this.stuckTime = Date.now();
+                if (this.debugMode) {
+                    console.warn(`Враг остановился из-за столкновения со стеной!`);
                 }
             }
         }
@@ -272,7 +254,7 @@ class Enemy {
         
         // Ограничиваем частоту сообщений чтобы не заспамить консоль
         const now = Date.now();
-        if (now - this.lastCollisionReport > 1000) { // Не чаще чем раз в секунду
+        if (now - this.lastCollisionReport > 2000) { // Не чаще чем раз в 2 секунды
             if (this.debugMode) {
                 console.warn(`Столкновение врага со стеной!`);
                 console.warn(`Позиция врага: [${Math.round(this.x)}, ${Math.round(this.y)}]`);
@@ -512,6 +494,14 @@ class Enemy {
             ctx.fillStyle = '#ffffff';
             ctx.font = '10px Consolas';
             ctx.fillText(`${this.collisionCount}`, this.x + this.width + 2, this.y + this.height/2);
+            
+            // Индикатор застревания
+            if (this.isStuck) {
+                ctx.fillStyle = '#ff0000';
+                ctx.beginPath();
+                ctx.arc(this.x + this.width/2, this.y - 15, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
     }
 }
