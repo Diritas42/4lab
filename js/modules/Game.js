@@ -381,7 +381,7 @@ class Game {
         
         this.enemies.forEach(enemy => {
             if (!enemy.isEliminated) {
-                enemy.update(this.player.x, this.player.y, this.isAlertMode, this.enemies);
+                enemy.update(this.player.x, this.player.y, this.isAlertMode, this.enemies, this.isAlertMode);
                 
                 // Проверка обнаружения игрока
                 if (enemy.detectPlayer(this.player.x, this.player.y, this.level.walls)) {
