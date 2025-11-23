@@ -13,6 +13,8 @@ class Player {
         this.color = '#4CAF50';
         this.direction = 0; // 0: вправо, 1: влево, 2: вверх, 3: вниз
         this.eliminationCooldown = 0;
+        this.canEliminate = false;
+        this.nearestEnemy = null;
     }
     
     /**
@@ -102,12 +104,28 @@ class Player {
     eliminateEnemy(enemies) {
         if (this.eliminationCooldown > 0) return;
         
+        // Автоматически находим ближайшего врага, которого можно устранить
+        let closestEnemy = null;
+        let minDistance = Infinity;
+        
         for (const enemy of enemies) {
             if (!enemy.isEliminated && enemy.canBeEliminated(this.x, this.y, this.direction)) {
-                enemy.eliminate();
-                this.eliminationCooldown = 30; // 0.5 секунды кулдауна
-                break;
+                const distance = Math.sqrt(
+                    Math.pow(this.x - enemy.x, 2) + 
+                    Math.pow(this.y - enemy.y, 2)
+                );
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestEnemy = enemy;
+                }
             }
+        }
+        
+        // Устраняем ближайшего врага
+        if (closestEnemy) {
+            closestEnemy.eliminate();
+            this.eliminationCooldown = 30; // 0.5 секунды кулдауна
         }
     }
     
