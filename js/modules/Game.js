@@ -25,6 +25,7 @@ class Game {
         this.keys = {};
         this.detectionLevel = 0;
         this.isAlertMode = false;
+        this.isHighAlertMode = false; // Режим повышенной готовности
         
         this.initLevels();
     }
@@ -47,10 +48,16 @@ class Game {
             1,
             [
                 // Стены: [x, y, width, height]
+                // Внешние стены
+                [0, 0, 800, 20],
+                [0, 0, 20, 500],
+                [0, 480, 800, 20],
+                [780, 0, 20, 500],
+                // Внутренние стены
                 [100, 100, 200, 20],
                 [400, 150, 20, 200],
                 [200, 300, 300, 20],
-                [50, 400, 150, 20],
+                [100, 400, 150, 20],
                 [500, 100, 20, 150],
                 [600, 200, 150, 20]
             ],
@@ -74,22 +81,28 @@ class Game {
         this.levels.push(new Level(
             2,
             [
-                [100, 50, 600, 20],
-                [100, 50, 20, 300],
+                // Внешние стены
+                [0, 0, 800, 20],
+                [0, 0, 20, 500],
+                [0, 480, 800, 20],
+                [780, 0, 20, 500],
+                // Внутренние стены
+                [100, 100, 600, 20],
+                [100, 100, 20, 300],
                 [100, 350, 600, 20],
-                [680, 50, 20, 300],
+                [680, 100, 20, 300],
                 [250, 150, 20, 150],
                 [450, 150, 20, 150],
                 [300, 250, 200, 20]
             ],
             [
-                [200, 100, [[200, 100], [200, 300]]],
-                [300, 100, [[300, 100], [500, 100]]],
+                [200, 200, [[200, 200], [200, 300]]],
+                [300, 200, [[300, 200], [500, 200]]],
                 [500, 300, [[500, 300], [300, 300]]],
                 [400, 200, [[400, 200], [400, 350]]]
             ],
             [650, 200],
-            [150, 100],
+            [150, 150],
             [
                 [300, 150],
                 [500, 150],
@@ -102,10 +115,12 @@ class Game {
         this.levels.push(new Level(
             3,
             [
-                [50, 50, 700, 20],
-                [50, 50, 20, 400],
-                [50, 450, 700, 20],
-                [730, 50, 20, 400],
+                // Внешние стены
+                [0, 0, 800, 20],
+                [0, 0, 20, 500],
+                [0, 480, 800, 20],
+                [780, 0, 20, 500],
+                // Внутренние стены
                 [150, 150, 500, 20],
                 [150, 150, 20, 150],
                 [150, 300, 500, 20],
@@ -127,7 +142,7 @@ class Game {
                 [500, 200],
                 [300, 350],
                 [600, 350],
-                [400, 450]
+                [400, 400]
             ]
         ));
     }
@@ -153,10 +168,13 @@ class Game {
         
         this.detectionLevel = 0;
         this.isAlertMode = false;
+        this.isHighAlertMode = false;
         this.gameState = 'playing';
         document.getElementById('levelDisplay').textContent = this.level.number;
         document.getElementById('documentsDisplay').textContent = 
             `0/${this.documents.length}`;
+        document.getElementById('eliminatedDisplay').textContent = 
+            `0/${this.enemies.length}`;
         document.getElementById('nextLevelBtn').style.display = 'none';
         document.getElementById('alert').style.display = 'none';
         
@@ -173,11 +191,13 @@ class Game {
             
             // Устранение врага
             if (e.code === 'Space' && this.gameState === 'playing') {
-                this.player.eliminateEnemy(this.enemies);
+                this.player.eliminateEnemy(this.enemies, this.isHighAlertMode);
+                this.updateEliminatedDisplay();
+                this.checkHighAlertCondition();
             }
             
-            // Сброс игры при обнаружении
-            if (this.gameState === 'gameOver' && e.code === 'Space') {
+            // Перезапуск уровня по R
+            if (e.code === 'KeyR') {
                 this.restartLevel();
             }
         });
@@ -200,15 +220,21 @@ class Game {
         let detected = false;
         this.enemies.forEach(enemy => {
             if (!enemy.isEliminated) {
-                enemy.update(this.player.x, this.player.y, this.isAlertMode);
+                enemy.update(this.player.x, this.player.y, this.isAlertMode, this.isHighAlertMode, this.enemies);
                 
                 // Проверка обнаружения игрока
-                if (enemy.detectPlayer(this.player.x, this.player.y, this.level.walls)) {
+                const detectionResult = enemy.detectPlayer(this.player.x, this.player.y, this.level.walls, this.isHighAlertMode);
+                if (detectionResult.detected) {
                     detected = true;
                     
                     // Если враг обнаружил игрока, переводим в режим тревоги
                     if (!this.isAlertMode) {
-                        this.detectionLevel = Math.min(100, this.detectionLevel + 3);
+                        // В режиме повышенной готовности обнаружение мгновенное
+                        if (this.isHighAlertMode) {
+                            this.detectionLevel = 100;
+                        } else {
+                            this.detectionLevel = Math.min(100, this.detectionLevel + 3);
+                        }
                     }
                 }
                 
@@ -221,8 +247,11 @@ class Game {
         
         // Обновление уровня обнаружения
         if (detected && !this.isAlertMode) {
-            this.detectionLevel = Math.min(100, this.detectionLevel + 2);
-        } else if (!this.isAlertMode) {
+            // В режиме повышенной готовности обнаружение уже на 100%
+            if (!this.isHighAlertMode) {
+                this.detectionLevel = Math.min(100, this.detectionLevel + 2);
+            }
+        } else if (!this.isAlertMode && !this.isHighAlertMode) {
             this.detectionLevel = Math.max(0, this.detectionLevel - 1);
         }
         
@@ -281,6 +310,53 @@ class Game {
     }
     
     /**
+     * Проверка условия для активации режима повышенной готовности
+     */
+    checkHighAlertCondition() {
+        const totalEnemies = this.enemies.length;
+        const eliminatedEnemies = this.enemies.filter(e => e.isEliminated).length;
+        
+        // Если устранено более 50% врагов
+        if (eliminatedEnemies > totalEnemies / 2 && !this.isHighAlertMode) {
+            this.activateHighAlertMode();
+        }
+    }
+    
+    /**
+     * Активация режима повышенной готовности
+     */
+    activateHighAlertMode() {
+        this.isHighAlertMode = true;
+        
+        // Все оставшиеся враги переходят в режим повышенной готовности
+        this.enemies.forEach(enemy => {
+            if (!enemy.isEliminated) {
+                enemy.highAlert();
+            }
+        });
+        
+        document.getElementById('alertText').textContent = 'РЕЖИМ ПОВЫШЕННОЙ ГОТОВНОСТИ!';
+        document.getElementById('alertText').style.color = '#ffcc00';
+        document.getElementById('alert').style.display = 'block';
+        
+        // Скрываем предупреждение через 3 секунды
+        setTimeout(() => {
+            if (this.gameState === 'playing') {
+                document.getElementById('alert').style.display = 'none';
+            }
+        }, 3000);
+    }
+    
+    /**
+     * Обновление счетчика устраненных врагов
+     */
+    updateEliminatedDisplay() {
+        const eliminatedCount = this.enemies.filter(e => e.isEliminated).length;
+        document.getElementById('eliminatedDisplay').textContent = 
+            `${eliminatedCount}/${this.enemies.length}`;
+    }
+    
+    /**
      * Проверка завершения уровня
      */
     checkLevelCompletion() {
@@ -320,7 +396,7 @@ class Game {
         // Отрисовка врагов
         this.enemies.forEach(enemy => {
             if (!enemy.isEliminated) {
-                enemy.render(this.ctx, this.isAlertMode);
+                enemy.render(this.ctx, this.isAlertMode, this.isHighAlertMode);
             }
         });
         
@@ -367,6 +443,7 @@ class Game {
         this.gameState = 'gameOver';
         document.getElementById('alertText').textContent = 'МИССИЯ ПРОВАЛЕНА!';
         document.getElementById('alertText').style.color = '#ff4444';
+        document.getElementById('alertSubtext').style.display = 'block';
         document.getElementById('alert').style.display = 'block';
     }
     
