@@ -27,6 +27,7 @@ class Enemy {
         this.stuckCounter = 0;
         this.lastX = x;
         this.lastY = y;
+        this.pathfindingAttempts = 0;
     }
     
     /**
@@ -44,15 +45,17 @@ class Enemy {
             this.stuckCounter++;
         } else {
             this.stuckCounter = 0;
+            this.pathfindingAttempts = 0;
         }
         
         this.lastX = this.x;
         this.lastY = this.y;
         
         // Если враг застрял, попробовать другой путь
-        if (this.stuckCounter > 60) { // Застрял на 1 секунду
+        if (this.stuckCounter > 30 && this.pathfindingAttempts < 5) { // Застрял на 0.5 секунды
             this.currentTarget = (this.currentTarget + 1) % this.patrolPath.length;
             this.stuckCounter = 0;
+            this.pathfindingAttempts++;
         }
         
         // Если глобальная тревога или враг уже был предупрежден
@@ -79,7 +82,7 @@ class Enemy {
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
                 if (distance > 0) {
-                    const pushForce = 0.5;
+                    const pushForce = 0.8;
                     this.x += (dx / distance) * pushForce;
                     this.y += (dy / distance) * pushForce;
                     
@@ -230,9 +233,19 @@ class Enemy {
                 this.x = originalX;
                 this.y = originalY + moveY;
             } else {
-                // Не можем двигаться ни по одной оси
-                this.x = originalX;
-                this.y = originalY;
+                // Не можем двигаться ни по одной оси - попробуем обойти препятствие
+                const randomAngle = Math.random() * Math.PI * 2;
+                this.x = originalX + Math.cos(randomAngle) * this.speed;
+                this.y = originalY + Math.sin(randomAngle) * this.speed;
+                
+                // Проверяем, не столкнулись ли мы снова
+                for (const wall of this.walls) {
+                    if (this.checkCollision(wall)) {
+                        this.x = originalX;
+                        this.y = originalY;
+                        break;
+                    }
+                }
             }
         }
         
