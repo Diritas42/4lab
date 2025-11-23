@@ -188,12 +188,6 @@ class Game {
         document.addEventListener('keydown', (e) => {
             this.keys[e.code] = true;
             
-            // Устранение врага
-            if (e.code === 'KeyQ' && this.gameState === 'playing') {
-                this.player.eliminateEnemy(this.enemies);
-                this.checkMassElimination();
-            }
-            
             // Перезапуск уровня по R
             if (e.code === 'KeyR') {
                 this.restartLevel();
@@ -219,7 +213,6 @@ class Game {
             // Оповещение о массовом устранении
             document.getElementById('alertText').textContent = 'ОБНАРУЖЕНА АКТИВНОСТЬ АГЕНТА!';
             document.getElementById('alertText').style.color = '#ffcc00';
-            document.getElementById('alertSubtext').style.display = 'none';
             document.getElementById('alert').style.display = 'block';
             
             // Усиление бдительности оставшихся врагов
@@ -246,6 +239,9 @@ class Game {
         
         // Обновление игрока
         this.player.update(this.keys, this.level.walls);
+        
+        // Автоматическое устранение врагов
+        this.autoEliminateEnemies();
         
         // Обновление врагов и проверка обнаружения
         let detected = false;
@@ -309,6 +305,18 @@ class Game {
     }
     
     /**
+     * Автоматическое устранение врагов при подходе сзади
+     */
+    autoEliminateEnemies() {
+        this.enemies.forEach(enemy => {
+            if (!enemy.isEliminated && enemy.canBeEliminated(this.player.x, this.player.y, this.player.direction)) {
+                enemy.eliminate();
+                this.checkMassElimination();
+            }
+        });
+    }
+    
+    /**
      * Активация режима тревоги
      */
     activateAlertMode() {
@@ -323,7 +331,6 @@ class Game {
         });
         
         document.getElementById('alertText').textContent = 'ТРЕВОГА!';
-        document.getElementById('alertSubtext').style.display = 'none';
         document.getElementById('alert').style.display = 'block';
         
         // Скрываем предупреждение через 2 секунды
@@ -346,7 +353,6 @@ class Game {
         } else {
             document.getElementById('alertText').textContent = 'СОБЕРИТЕ ВСЕ ДОКУМЕНТЫ!';
             document.getElementById('alertText').style.color = '#ffcc00';
-            document.getElementById('alertSubtext').style.display = 'none';
             document.getElementById('alert').style.display = 'block';
             
             // Скрываем предупреждение через 2 секунды
@@ -411,7 +417,6 @@ class Game {
             // Игра завершена
             document.getElementById('alertText').textContent = 'МИССИЯ ВЫПОЛНЕНА!';
             document.getElementById('alertText').style.color = '#4CAF50';
-            document.getElementById('alertSubtext').style.display = 'none';
             document.getElementById('alert').style.display = 'block';
         }
     }
