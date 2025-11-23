@@ -3,7 +3,7 @@
  * Класс врага
  */
 class Enemy {
-    constructor(x, y, patrolPath, walls) {
+    constructor(x, y, patrolPath, walls, debugMode = false) {
         this.x = x;
         this.y = y;
         this.width = 20;
@@ -17,7 +17,7 @@ class Enemy {
         this.enhancedColor = '#ff4444';
         this.detectionRange = 150;
         this.detectionAngle = Math.PI / 3; // 60 градусов
-        this.blindSpotAngle = Math.PI / 6; // 30 градусов сзади
+        this.blindSpotAngle = Math.PI; // Увеличено до 180 градусов для полной задней полусферы
         this.direction = 0; // Направление взгляда
         this.isAlerted = false;
         this.isEliminated = false;
@@ -28,6 +28,9 @@ class Enemy {
         this.lastX = x;
         this.lastY = y;
         this.pathfindingAttempts = 0;
+        this.debugMode = debugMode;
+        this.collisionCount = 0;
+        this.lastCollisionReport = 0;
     }
     
     /**
@@ -56,6 +59,10 @@ class Enemy {
             this.currentTarget = (this.currentTarget + 1) % this.patrolPath.length;
             this.stuckCounter = 0;
             this.pathfindingAttempts++;
+            
+            if (this.debugMode) {
+                console.log(`Враг застрял, меняем цель на ${this.currentTarget}`);
+            }
         }
         
         // Если глобальная тревога или враг уже был предупрежден
@@ -183,6 +190,7 @@ class Enemy {
             if (this.checkCollision(wall)) {
                 collisionX = true;
                 this.x = originalX;
+                this.reportCollision(wall, 'X');
                 break;
             }
         }
@@ -195,6 +203,7 @@ class Enemy {
             if (this.checkCollision(wall)) {
                 collisionY = true;
                 this.y = originalY;
+                this.reportCollision(wall, 'Y');
                 break;
             }
         }
@@ -243,6 +252,7 @@ class Enemy {
                     if (this.checkCollision(wall)) {
                         this.x = originalX;
                         this.y = originalY;
+                        this.reportCollision(wall, 'RANDOM');
                         break;
                     }
                 }
@@ -252,6 +262,25 @@ class Enemy {
         // Ограничение движения в пределах canvas
         this.x = Math.max(0, Math.min(this.x, 800 - this.width));
         this.y = Math.max(0, Math.min(this.y, 500 - this.height));
+    }
+    
+    /**
+     * Сообщение о столкновении (для отладки)
+     */
+    reportCollision(wall, axis) {
+        this.collisionCount++;
+        
+        // Ограничиваем частоту сообщений чтобы не заспамить консоль
+        const now = Date.now();
+        if (now - this.lastCollisionReport > 1000) { // Не чаще чем раз в секунду
+            if (this.debugMode) {
+                console.warn(`Столкновение врага со стеной!`);
+                console.warn(`Позиция врага: [${Math.round(this.x)}, ${Math.round(this.y)}]`);
+                console.warn(`Стена: [${wall}]`);
+                console.warn(`Ось: ${axis}, Всего столкновений: ${this.collisionCount}`);
+            }
+            this.lastCollisionReport = now;
+        }
     }
     
     /**
@@ -367,19 +396,22 @@ class Enemy {
     canBeEliminated(playerX, playerY, playerDirection) {
         if (this.isEliminated || this.isAlerted || this.isVigilanceEnhanced) return false;
         
-        // Проверка расстояния
+        // Проверка расстояния - увеличена дистанция устранения
         const dx = playerX - this.x;
         const dy = playerY - this.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
-        if (distance > 30) return false;
+        // Увеличена дистанция устранения до 40 пикселей
+        if (distance > 40) return false;
         
         // Проверка, что игрок находится сзади врага
+        // Используем полную заднюю полусферу (180 градусов)
         const angleToPlayer = Math.atan2(dy, dx);
         const angleDiff = Math.abs(this.direction - angleToPlayer);
         const normalizedAngleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
         
-        return Math.abs(normalizedAngleDiff) > Math.PI - this.blindSpotAngle / 2;
+        // Упрощенная проверка - игрок должен быть в задней полусфере врага
+        return Math.abs(normalizedAngleDiff) > Math.PI / 2;
     }
     
     /**
@@ -401,6 +433,9 @@ class Enemy {
      */
     eliminate() {
         this.isEliminated = true;
+        if (this.debugMode) {
+            console.log(`Враг устранен! Позиция: [${Math.round(this.x)}, ${Math.round(this.y)}]`);
+        }
     }
     
     /**
@@ -470,6 +505,13 @@ class Enemy {
             ctx.beginPath();
             ctx.arc(this.x + this.width/2, this.y - 10, 5, 0, Math.PI * 2);
             ctx.fill();
+        }
+        
+        // Отладочная информация
+        if (this.debugMode && this.collisionCount > 0) {
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '10px Consolas';
+            ctx.fillText(`${this.collisionCount}`, this.x + this.width + 2, this.y + this.height/2);
         }
     }
 }
