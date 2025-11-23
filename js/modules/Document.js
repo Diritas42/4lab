@@ -6,8 +6,8 @@ class Document {
     constructor(x, y) {
         this.x = x;
         this.y = y;
-        this.width = 20;
-        this.height = 25;
+        this.width = 15;
+        this.height = 20;
         this.color = '#FFD700'; // Золотой цвет
         this.isCollected = false;
     }
