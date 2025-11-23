@@ -98,10 +98,9 @@ class Player {
     /**
      * Устранение врага
      * @param {Array} enemies - массив врагов
-     * @param {boolean} isHighAlertMode - режим повышенной готовности
      */
-    eliminateEnemy(enemies, isHighAlertMode) {
-        if (this.eliminationCooldown > 0 || isHighAlertMode) return;
+    eliminateEnemy(enemies) {
+        if (this.eliminationCooldown > 0) return;
         
         for (const enemy of enemies) {
             if (!enemy.isEliminated && enemy.canBeEliminated(this.x, this.y, this.direction)) {
