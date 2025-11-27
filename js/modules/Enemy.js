@@ -1,8 +1,5 @@
-// js/modules/Enemy.js
-/**
- * Класс врага
- */
-class Enemy {
+// Класс врага
+export class Enemy {
     constructor(x, y, patrolPath, walls, debugMode = false) {
         this.x = x;
         this.y = y;
@@ -10,7 +7,7 @@ class Enemy {
         this.height = 20;
         this.patrolPath = patrolPath;
         this.currentTarget = 0;
-        this.speed = 1;
+        this.speed = 0.5;
         this.alertSpeed = 2.5;
         this.color = '#f44336';
         this.alertColor = '#ff6b6b';
@@ -24,16 +21,10 @@ class Enemy {
         this.isVigilanceEnhanced = false;
         this.walls = walls;
         this.chaseTarget = null;
-        this.stuckCounter = 0;
-        this.lastX = x;
-        this.lastY = y;
-        this.pathfindingAttempts = 0;
         this.debugMode = debugMode;
         this.collisionCount = 0;
         this.lastCollisionReport = 0;
-        this.isStuck = false;
-        this.stuckTime = 0;
-        this.lastMoveTime = 0;
+        this.isChasing = false;
     }
     
     /**
@@ -47,43 +38,12 @@ class Enemy {
     update(playerX, playerY, isGlobalAlert, allEnemies, enableEnemyCollisions = false) {
         if (this.isEliminated) return;
         
-        // Проверка, не застрял ли враг
-        if (Math.abs(this.x - this.lastX) < 0.1 && Math.abs(this.y - this.lastY) < 0.1) {
-            this.stuckCounter++;
-            if (this.stuckCounter > 60 && !this.isStuck) { // Застрял на 1 секунду
-                this.isStuck = true;
-                this.stuckTime = Date.now();
-                if (this.debugMode) {
-                    console.warn(`Враг застрял! Позиция: [${Math.round(this.x)}, ${Math.round(this.y)}]`);
-                }
-            }
-        } else {
-            this.stuckCounter = 0;
-            this.pathfindingAttempts = 0;
-            this.isStuck = false;
-        }
-        
-        this.lastX = this.x;
-        this.lastY = this.y;
-        
-        // Если враг застрял, попробовать другой путь
-        if (this.isStuck) {
-            const stuckDuration = Date.now() - this.stuckTime;
-            if (stuckDuration > 2000) { // Если застрял более 2 секунд
-                this.currentTarget = (this.currentTarget + 1) % this.patrolPath.length;
-                this.isStuck = false;
-                this.stuckCounter = 0;
-                if (this.debugMode) {
-                    console.log(`Враг сменил цель из-за застревания. Новая цель: ${this.currentTarget}`);
-                }
-            }
-            return; // Не двигаться пока застрял
-        }
-        
         // Если глобальная тревога или враг уже был предупрежден
         if (isGlobalAlert || this.isAlerted) {
+            this.isChasing = true;
             this.chasePlayer(playerX, playerY);
         } else {
+            this.isChasing = false;
             this.patrol();
         }
         
@@ -95,7 +55,7 @@ class Enemy {
     
     /**
      * Проверка коллизий с другими врагами
-     * @param {Array} allEnemies - все враги на уровне
+     * @param {Array} allEnemies - все враги на уровня
      */
     checkEnemyCollisions(allEnemies) {
         for (const enemy of allEnemies) {
@@ -115,6 +75,9 @@ class Enemy {
                         if (this.checkCollision(wall)) {
                             this.x -= (dx / distance) * pushForce;
                             this.y -= (dy / distance) * pushForce;
+                            if (this.debugMode) {
+                                this.reportCollision(wall, 'ENEMY_PUSH');
+                            }
                             break;
                         }
                     }
@@ -149,62 +112,13 @@ class Enemy {
             
             if (distance < 5) {
                 this.currentTarget = (this.currentTarget + 1) % this.patrolPath.length;
-                this.isStuck = false;
-                this.stuckCounter = 0;
             } else {
-                // Проверяем, можно ли двигаться к цели без столкновения
-                if (this.canMoveTo(target[0], target[1])) {
-                    this.moveTowards(target[0], target[1], this.speed);
-                    
-                    // Обновление направления взгляда
-                    this.direction = Math.atan2(dy, dx);
-                } else {
-                    // Если нельзя двигаться к цели, меняем цель
-                    this.currentTarget = (this.currentTarget + 1) % this.patrolPath.length;
-                    if (this.debugMode) {
-                        console.log(`Враг не может достичь цели, меняем на ${this.currentTarget}`);
-                    }
-                }
+                this.moveTowards(target[0], target[1], this.speed);
+                
+                // Обновление направления взгляда
+                this.direction = Math.atan2(dy, dx);
             }
         }
-    }
-    
-    /**
-     * Проверка возможности движения к точке без столкновения
-     */
-    canMoveTo(targetX, targetY) {
-        const dx = targetX - this.x;
-        const dy = targetY - this.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        if (distance === 0) return true;
-        
-        // Проверяем несколько точек на пути
-        const steps = Math.ceil(distance / 5);
-        for (let i = 1; i <= steps; i++) {
-            const checkX = this.x + (dx / distance) * (distance / steps) * i;
-            const checkY = this.y + (dy / distance) * (distance / steps) * i;
-            
-            for (const wall of this.walls) {
-                if (this.checkCollisionAtPosition(wall, checkX, checkY)) {
-                    return false;
-                }
-            }
-        }
-        
-        return true;
-    }
-    
-    /**
-     * Проверка коллизии со стеной в указанной позиции
-     */
-    checkCollisionAtPosition(wall, x, y) {
-        return (
-            x < wall[0] + wall[2] &&
-            x + this.width > wall[0] &&
-            y < wall[1] + wall[3] &&
-            y + this.height > wall[1]
-        );
     }
     
     /**
@@ -256,7 +170,9 @@ class Enemy {
             if (this.checkCollision(wall)) {
                 collisionX = true;
                 this.x = originalX;
-                this.reportCollision(wall, 'X');
+                if (this.debugMode) {
+                    this.reportCollision(wall, 'X');
+                }
                 break;
             }
         }
@@ -269,24 +185,21 @@ class Enemy {
             if (this.checkCollision(wall)) {
                 collisionY = true;
                 this.y = originalY;
-                this.reportCollision(wall, 'Y');
+                if (this.debugMode) {
+                    this.reportCollision(wall, 'Y');
+                }
                 break;
             }
         }
         
         // Если есть коллизия по обеим осям, враг останавливается
-        if (collisionX && collisionY) {
-            // Враг останавливается и не пытается двигаться дальше
+        if (collisionX && collisionY && this.isChasing) {
+            // Враг останавливается при погоне
             this.x = originalX;
             this.y = originalY;
             
-            // Если враг застрял, меняем цель патрулирования
-            if (!this.isStuck) {
-                this.isStuck = true;
-                this.stuckTime = Date.now();
-                if (this.debugMode) {
-                    console.warn(`Враг остановился из-за столкновения со стеной!`);
-                }
+            if (this.debugMode) {
+                console.warn(`Враг остановился из-за столкновения со стеной во время погони!`);
             }
         }
         
@@ -303,13 +216,8 @@ class Enemy {
         
         // Ограничиваем частоту сообщений чтобы не заспамить консоль
         const now = Date.now();
-        if (now - this.lastCollisionReport > 2000) { // Не чаще чем раз в 2 секунды
-            if (this.debugMode) {
-                console.warn(`Столкновение врага со стеной!`);
-                console.warn(`Позиция врага: [${Math.round(this.x)}, ${Math.round(this.y)}]`);
-                console.warn(`Стена: [${wall}]`);
-                console.warn(`Ось: ${axis}, Всего столкновений: ${this.collisionCount}`);
-            }
+        if (now - this.lastCollisionReport > 1000) { // Не чаще чем раз в 1 секунду
+            console.log(`Враг столкнулся со стеной! Позиция: [${Math.round(this.x)}, ${Math.round(this.y)}], Стена: [${wall}], Ось: ${axis}, Всего столкновений: ${this.collisionCount}`);
             this.lastCollisionReport = now;
         }
     }
@@ -427,13 +335,13 @@ class Enemy {
     canBeEliminated(playerX, playerY, playerDirection) {
         if (this.isEliminated || this.isAlerted || this.isVigilanceEnhanced) return false;
         
-        // Проверка расстояния - увеличена дистанция устранения
+        // Проверка расстояния - уменьшена дистанция устранения до 25 пикселей
         const dx = playerX - this.x;
         const dy = playerY - this.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
-        // Увеличена дистанция устранения до 40 пикселей
-        if (distance > 40) return false;
+        // Уменьшена дистанция устранения до 25 пикселей
+        if (distance > 25) return false;
         
         // Проверка, что игрок находится сзади врага
         // Используем полную заднюю полусферу (180 градусов)
@@ -537,22 +445,5 @@ class Enemy {
             ctx.arc(this.x + this.width/2, this.y - 10, 5, 0, Math.PI * 2);
             ctx.fill();
         }
-        
-        // Отладочная информация
-        if (this.debugMode && this.collisionCount > 0) {
-            ctx.fillStyle = '#ffffff';
-            ctx.font = '10px Consolas';
-            ctx.fillText(`${this.collisionCount}`, this.x + this.width + 2, this.y + this.height/2);
-            
-            // Индикатор застревания
-            if (this.isStuck) {
-                ctx.fillStyle = '#ff0000';
-                ctx.beginPath();
-                ctx.arc(this.x + this.width/2, this.y - 15, 3, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
     }
 }
-
-export default Enemy;
