@@ -1,13 +1,10 @@
-// js/modules/Game.js
-import Player from './Player.js';
-import Enemy from './Enemy.js';
-import Level from './Level.js';
-import Document from './Document.js';
+import { Player } from './Player.js';
+import { Enemy } from './Enemy.js';
+import { Level } from './Level.js';
+import { Document } from './Document.js';
 
-/**
- * Основной класс игры, управляющий игровым процессом
- */
-class Game {
+// Основной класс игры
+export class Game {
     constructor(canvas) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
@@ -42,7 +39,7 @@ class Game {
         // Отладочная информация
         if (this.debugMode) {
             console.log("=== ДЕБАГ РЕЖИМ ВКЛЮЧЕН ===");
-            console.log("Столкновения врагов и документов со стенами будут выводиться в консоль");
+            console.log("Столкновения будут выводиться в консоль");
         }
     }
     
@@ -50,220 +47,126 @@ class Game {
      * Создание уровней игры
      */
     initLevels() {
-        // Уровень 1 - Простой (полностью перестроен)
+        // Уровень 1 - Простой с препятствиями для обзора
         this.levels.push(new Level(
             1,
             [
                 // Внешние стены
-                [0, 0, 800, 10],
-                [0, 0, 10, 500],
-                [0, 490, 800, 10],
-                [790, 0, 10, 500],
-                // Внутренние стены - только крупные препятствия с зазорами
-                [150, 100, 200, 10],
-                [450, 150, 10, 200],
-                [200, 350, 300, 10],
-                [100, 400, 150, 10],
-                [500, 100, 10, 150],
-                [600, 200, 150, 10]
+                [0, 0, 800, 15],
+                [0, 0, 15, 500],
+                [0, 485, 800, 15],
+                [785, 0, 15, 500],
+                
+                // Внутренние препятствия
+                [180, 100, 20, 150],
+                [380, 200, 20, 120],
+                [580, 150, 20, 100]
             ],
             [
-                // Враги: [x, y, patrolPath] - гарантированно в свободном пространстве
-                [300, 200, [[300, 200], [500, 200]]],
-                [200, 300, [[200, 300], [200, 450]]],
-                [550, 150, [[550, 150], [700, 150]]]
+                // Враги: [x, y, patrolPath]
+                [250, 200, [[250, 200], [350, 200]]],
+                [400, 350, [[400, 350], [400, 450]]],
+                [600, 300, [[600, 300], [600, 250]]]
             ],
-            [750, 450], // Выход
+            [750, 50], // Выход
             [50, 50], // Стартовая позиция игрока
             [
-                // Документы: [x, y] - гарантированно в свободном пространстве
-                [200, 150],
-                [450, 300],
-                [650, 400]
+                // Документы: [x, y]
+                [220, 150],
+                [500, 300],
+                [650, 100]
             ]
         ));
         
-        // Уровень 2 - Средний (полностью перестроен)
+        // Уровень 2 - Лабиринт с патрулирующими врагами
         this.levels.push(new Level(
             2,
             [
                 // Внешние стены
-                [0, 0, 800, 10],
-                [0, 0, 10, 500],
-                [0, 490, 800, 10],
-                [790, 0, 10, 500],
-                // Внутренние стены
-                [100, 100, 600, 10],
-                [100, 100, 10, 150],
-                [100, 250, 200, 10],
-                [300, 250, 10, 150],
-                [300, 400, 450, 10],
-                [500, 150, 10, 100],
-                [600, 250, 150, 10]
+                [0, 0, 800, 15],
+                [0, 0, 15, 500],
+                [0, 485, 800, 15],
+                [785, 0, 15, 500],
+                
+                // Внутренние препятствия
+                [100, 100, 20, 80],
+                [100, 220, 20, 80],
+                [200, 50, 100, 20],
+                [200, 180, 100, 20],
+                [200, 310, 100, 20],
+                [200, 430, 100, 20],
+                
+                // Центральная перегородка
+                [350, 150, 20, 200],
+                
+                // Правая сторона
+                [500, 100, 20, 80],
+                [500, 220, 20, 80],
+                [600, 50, 100, 20],
+                [600, 180, 100, 20],
+                [600, 310, 100, 20],
+                [600, 430, 100, 20]
             ],
             [
-                [200, 150, [[200, 150], [200, 300]]],
-                [400, 200, [[400, 200], [600, 200]]],
-                [550, 300, [[550, 300], [550, 450]]],
-                [250, 350, [[250, 350], [450, 350]]]
+                // Враги с исправленными путями патрулирования
+                [150, 150, [[150, 150], [150, 120], [180, 120], [180, 150]]],
+                [150, 350, [[150, 350], [150, 380], [180, 380], [180, 350]]],
+                [650, 150, [[650, 150], [650, 120], [620, 120], [620, 150]]],
+                [650, 350, [[650, 350], [650, 380], [620, 380], [620, 350]]],
+                [400, 250, [[400, 250], [400, 200], [370, 200], [370, 250]]]
             ],
-            [700, 50],
-            [150, 450],
+            [750, 450], // Выход
+            [50, 450],  // Старт
             [
-                [150, 200],
-                [350, 150],
-                [500, 300],
-                [650, 200]
+                // Документы в безопасных местах
+                [150, 80],
+                [150, 400],
+                [650, 80],
+                [650, 400],
+                [400, 400]
             ]
         ));
         
-        // Уровень 3 - Сложный (полностью перестроен)
+        // Уровень 3 - Сложный с большим количеством врагов
         this.levels.push(new Level(
             3,
             [
                 // Внешние стены
-                [0, 0, 800, 10],
-                [0, 0, 10, 500],
-                [0, 490, 800, 10],
-                [790, 0, 10, 500],
-                // Внутренние стены
-                [100, 100, 600, 10],
-                [100, 100, 10, 300],
-                [100, 400, 600, 10],
-                [700, 100, 10, 300],
-                [200, 200, 400, 10],
-                [200, 200, 10, 100],
-                [600, 200, 10, 100],
-                [300, 300, 200, 10]
+                [0, 0, 800, 15],
+                [0, 0, 15, 500],
+                [0, 485, 800, 15],
+                [785, 0, 15, 500],
+                
+                // Внутренние препятствия
+                [100, 100, 20, 120],
+                [300, 150, 20, 80],
+                [500, 200, 20, 150],
+                [200, 250, 100, 20],
+                [400, 300, 120, 20],
+                [600, 350, 20, 100],
+                [250, 100, 20, 50],
+                [450, 150, 20, 80],
+                [650, 200, 20, 80]
             ],
             [
+                // Враги: [x, y, patrolPath]
                 [150, 150, [[150, 150], [150, 350]]],
-                [250, 250, [[250, 250], [450, 250]]],
-                [350, 150, [[350, 150], [550, 150]]],
-                [450, 350, [[450, 350], [650, 350]]],
+                [270, 270, [[270, 270], [320, 270]]],
+                [350, 150, [[350, 150], [430, 150]]],
+                [450, 350, [[450, 350], [530, 350]]],
                 [550, 250, [[550, 250], [550, 400]]]
             ],
-            [750, 250],
-            [50, 250],
+            [750, 250], // Выход
+            [50, 450],
             [
+                // Документы: [x, y]
                 [150, 300],
-                [300, 150],
+                [280, 150],
                 [500, 150],
                 [400, 400],
                 [650, 300]
             ]
         ));
-        
-        // Проверка уровней на проблемы
-        this.validateLevels();
-    }
-    
-    /**
-     * Проверка уровней на проблемы с размещением
-     */
-    validateLevels() {
-        if (!this.debugMode) return;
-        
-        console.log("=== ПРОВЕРКА УРОВНЕЙ НА ПРОБЛЕМЫ ===");
-        
-        this.levels.forEach((level, index) => {
-            console.log(`\n--- Уровень ${index + 1} ---`);
-            
-            // Проверка документов
-            level.documents.forEach((docPos, docIndex) => {
-                const [x, y] = docPos;
-                let inWall = false;
-                
-                for (const wall of level.walls) {
-                    if (this.pointInRect(x, y, wall)) {
-                        inWall = true;
-                        console.error(`❌ Документ ${docIndex} в стене! Позиция: [${x}, ${y}], Стена: [${wall}]`);
-                        break;
-                    }
-                }
-                
-                if (!inWall) {
-                    console.log(`✅ Документ ${docIndex} в правильном месте: [${x}, ${y}]`);
-                }
-            });
-            
-            // Проверка врагов
-            level.enemies.forEach((enemyData, enemyIndex) => {
-                const [x, y] = enemyData;
-                let inWall = false;
-                
-                for (const wall of level.walls) {
-                    if (this.rectOverlap(x - 10, y - 10, 20, 20, wall[0], wall[1], wall[2], wall[3])) {
-                        inWall = true;
-                        console.error(`❌ Враг ${enemyIndex} в стене! Позиция: [${x}, ${y}], Стена: [${wall}]`);
-                        break;
-                    }
-                }
-                
-                // Проверка маршрута патрулирования
-                const patrolPath = enemyData[2];
-                if (patrolPath) {
-                    patrolPath.forEach((point, pointIndex) => {
-                        const [px, py] = point;
-                        for (const wall of level.walls) {
-                            if (this.pointInRect(px, py, wall)) {
-                                console.error(`❌ Точка патрулирования ${pointIndex} врага ${enemyIndex} в стене! Позиция: [${px}, ${py}], Стена: [${wall}]`);
-                            }
-                        }
-                    });
-                }
-                
-                if (!inWall) {
-                    console.log(`✅ Враг ${enemyIndex} в правильном месте: [${x}, ${y}]`);
-                }
-            });
-            
-            // Проверка выхода
-            const [exitX, exitY] = level.exit;
-            let exitInWall = false;
-            for (const wall of level.walls) {
-                if (this.pointInRect(exitX, exitY, wall)) {
-                    exitInWall = true;
-                    console.error(`❌ Выход в стене! Позиция: [${exitX}, ${exitY}], Стена: [${wall}]`);
-                    break;
-                }
-            }
-            if (!exitInWall) {
-                console.log(`✅ Выход в правильном месте: [${exitX}, ${exitY}]`);
-            }
-            
-            // Проверка стартовой позиции
-            const [startX, startY] = level.startPosition;
-            let startInWall = false;
-            for (const wall of level.walls) {
-                if (this.pointInRect(startX, startY, wall)) {
-                    startInWall = true;
-                    console.error(`❌ Стартовая позиция в стене! Позиция: [${startX}, ${startY}], Стена: [${wall}]`);
-                    break;
-                }
-            }
-            if (!startInWall) {
-                console.log(`✅ Стартовая позиция в правильном месте: [${startX}, ${startY}]`);
-            }
-        });
-        
-        console.log("\n=== ПРОВЕРКА ЗАВЕРШЕНА ===");
-    }
-    
-    /**
-     * Проверка точки в прямоугольнике
-     */
-    pointInRect(x, y, rect) {
-        return x >= rect[0] && x <= rect[0] + rect[2] && 
-               y >= rect[1] && y <= rect[1] + rect[3];
-    }
-    
-    /**
-     * Проверка пересечения прямоугольников
-     */
-    rectOverlap(x1, y1, w1, h1, x2, y2, w2, h2) {
-        return x1 < x2 + w2 && x1 + w1 > x2 && 
-               y1 < y2 + h2 && y1 + h1 > y2;
     }
     
     /**
@@ -273,7 +176,7 @@ class Game {
     startLevel(levelIndex) {
         this.currentLevel = levelIndex;
         this.level = this.levels[levelIndex];
-        this.player = new Player(this.level.startPosition[0], this.level.startPosition[1]);
+        this.player = new Player(this.level.startPosition[0], this.level.startPosition[1], this.debugMode);
         
         // Создание врагов
         this.enemies = this.level.enemies.map(data => 
@@ -305,7 +208,93 @@ class Game {
             console.log(`Стен: ${this.level.walls.length}`);
             console.log(`Врагов: ${this.enemies.length}`);
             console.log(`Документов: ${this.documents.length}`);
+            
+            // Проверка коллизий при старте
+            this.validateLevelStart();
         }
+    }
+    
+    /**
+     * Проверка уровня на проблемы при старте
+     */
+    validateLevelStart() {
+        console.log("=== ПРОВЕРКА УРОВНЯ НА ПРОБЛЕМЫ ===");
+        
+        // Проверка игрока
+        let playerInWall = false;
+        for (const wall of this.level.walls) {
+            if (this.rectOverlap(this.player.x, this.player.y, this.player.width, this.player.height, 
+                               wall[0], wall[1], wall[2], wall[3])) {
+                playerInWall = true;
+                console.error(`❌ Игрок в стене! Позиция: [${this.player.x}, ${this.player.y}]`);
+                break;
+            }
+        }
+        if (!playerInWall) {
+            console.log(`✅ Игрок в правильном месте: [${this.player.x}, ${this.player.y}]`);
+        }
+        
+        // Проверка документов
+        this.documents.forEach((doc, index) => {
+            let inWall = false;
+            for (const wall of this.level.walls) {
+                if (this.rectOverlap(doc.x, doc.y, doc.width, doc.height, 
+                                   wall[0], wall[1], wall[2], wall[3])) {
+                    inWall = true;
+                    console.error(`❌ Документ ${index} в стене! Позиция: [${doc.x}, ${doc.y}]`);
+                    break;
+                }
+            }
+            if (!inWall) {
+                console.log(`✅ Документ ${index} в правильном месте: [${doc.x}, ${doc.y}]`);
+            }
+        });
+        
+        // Проверка врагов
+        this.enemies.forEach((enemy, index) => {
+            let inWall = false;
+            for (const wall of this.level.walls) {
+                if (this.rectOverlap(enemy.x, enemy.y, enemy.width, enemy.height, 
+                                   wall[0], wall[1], wall[2], wall[3])) {
+                    inWall = true;
+                    console.error(`❌ Враг ${index} в стене! Позиция: [${enemy.x}, ${enemy.y}]`);
+                    break;
+                }
+            }
+            if (!inWall) {
+                console.log(`✅ Враг ${index} в правильном месте: [${enemy.x}, ${enemy.y}]`);
+            }
+            
+            // Проверка путей патрулирования
+            if (enemy.patrolPath) {
+                enemy.patrolPath.forEach((point, pointIndex) => {
+                    const [px, py] = point;
+                    for (const wall of this.level.walls) {
+                        if (this.pointInRect(px, py, wall)) {
+                            console.error(`❌ Точка патрулирования ${pointIndex} врага ${index} в стене! Позиция: [${px}, ${py}]`);
+                        }
+                    }
+                });
+            }
+        });
+        
+        console.log("=== ПРОВЕРКА ЗАВЕРШЕНА ===");
+    }
+    
+    /**
+     * Проверка точки в прямоугольнике
+     */
+    pointInRect(x, y, rect) {
+        return x >= rect[0] && x <= rect[0] + rect[2] && 
+               y >= rect[1] && y <= rect[1] + rect[3];
+    }
+    
+    /**
+     * Проверка пересечения прямоугольников
+     */
+    rectOverlap(x1, y1, w1, h1, x2, y2, w2, h2) {
+        return x1 < x2 + w2 && x1 + w1 > x2 && 
+               y1 < y2 + h2 && y1 + h1 > y2;
     }
     
     /**
@@ -427,12 +416,10 @@ class Game {
         
         // Проверка достижения выхода
         const exit = this.level.exit;
-        const distanceToExit = Math.sqrt(
-            Math.pow(this.player.x - exit[0], 2) + 
-            Math.pow(this.player.y - exit[1], 2)
-        );
+        const exitRect = [exit[0], exit[1], 20, 20];
         
-        if (distanceToExit < 20) {
+        if (this.rectOverlap(this.player.x, this.player.y, this.player.width, this.player.height, 
+                           exitRect[0], exitRect[1], exitRect[2], exitRect[3])) {
             this.checkLevelCompletion();
         }
     }
@@ -545,11 +532,12 @@ class Game {
         // Информация об игроке
         this.ctx.fillText(`Игрок: [${Math.round(this.player.x)}, ${Math.round(this.player.y)}]`, 10, 20);
         this.ctx.fillText(`Направление: ${this.player.direction}`, 10, 35);
+        this.ctx.fillText(`Столкновений: ${this.player.collisionCount}`, 10, 50);
         
         // Информация о врагах
         this.enemies.forEach((enemy, index) => {
             if (!enemy.isEliminated) {
-                const yPos = 55 + index * 15;
+                const yPos = 70 + index * 15;
                 this.ctx.fillText(`Враг ${index}: [${Math.round(enemy.x)}, ${Math.round(enemy.y)}]`, 10, yPos);
                 
                 // Столкновения со стенами
@@ -618,5 +606,3 @@ class Game {
         }
     }
 }
-
-export default Game;
