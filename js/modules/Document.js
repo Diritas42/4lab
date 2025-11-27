@@ -1,22 +1,14 @@
-// js/modules/Document.js
-/**
- * Класс секретного документа
- */
-class Document {
+export class Document {
     constructor(x, y) {
         this.x = x;
         this.y = y;
         this.width = 15;
         this.height = 20;
-        this.color = '#FFD700'; // Золотой цвет
+        this.color = '#FFD700';
         this.isCollected = false;
     }
     
-    /**
-     * Проверка коллизии с игроком
-     * @param {Player} player - объект игрока
-     * @returns {boolean} - есть ли коллизия
-     */
+
     checkCollision(player) {
         return (
             this.x < player.x + player.width &&
@@ -33,10 +25,7 @@ class Document {
         this.isCollected = true;
     }
     
-    /**
-     * Отрисовка документа
-     * @param {CanvasRenderingContext2D} ctx - контекст canvas
-     */
+
     render(ctx) {
         if (this.isCollected) return;
         
@@ -55,5 +44,3 @@ class Document {
         ctx.fillRect(this.x + 2, this.y + 2, 5, 3);
     }
 }
-
-export default Document;
