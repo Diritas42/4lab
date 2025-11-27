@@ -5,8 +5,8 @@ export class Player {
         this.y = y;
         this.width = 20;
         this.height = 20;
-        this.speed = 2;
-        this.runSpeed = 4;
+        this.speed = 1.5;
+        this.runSpeed = 2.6;
         this.color = '#4CAF50';
         this.direction = 0; // 0: вправо, 1: влево, 2: вверх, 3: вниз
         this.debugMode = debugMode;
@@ -129,3 +129,4 @@ export class Player {
         }
     }
 }
+
