@@ -1,8 +1,5 @@
-// js/modules/Level.js
-/**
- * Класс уровня игры
- */
-class Level {
+// Класс уровня игры
+export class Level {
     constructor(number, walls, enemies, exit, startPosition, documents) {
         this.number = number;
         this.walls = walls;
@@ -17,24 +14,18 @@ class Level {
      * @param {CanvasRenderingContext2D} ctx - контекст canvas
      */
     render(ctx) {
-        // Отрисовка стен
-        ctx.fillStyle = '#555';
+        // Отрисовка стен (увеличена толщина)
+        ctx.fillStyle = '#666';
         this.walls.forEach(wall => {
             ctx.fillRect(wall[0], wall[1], wall[2], wall[3]);
         });
         
-        // Отрисовка выхода - исправлено смещение
-        const exitSize = 20;
-        const exitX = this.exit[0] - exitSize/2;
-        const exitY = this.exit[1] - exitSize/2;
-        
+        // Отрисовка выхода (исправлено смещение - теперь центр выхода соответствует координатам)
         ctx.fillStyle = '#2196F3';
-        ctx.fillRect(exitX, exitY, exitSize, exitSize);
+        ctx.fillRect(this.exit[0], this.exit[1], 20, 20);
         ctx.fillStyle = '#fff';
         ctx.font = '12px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('ВЫХОД', this.exit[0], this.exit[1] - 15);
+        ctx.fillText('ВЫХОД', this.exit[0] + 10, this.exit[1] - 5);
     }
 }
-
-export default Level;
