@@ -1,5 +1,4 @@
-// js/main.js
-import Game from './modules/Game.js';
+import { Game } from './modules/Game.js';
 
 // Инициализация игры после полной загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
