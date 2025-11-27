@@ -1,9 +1,6 @@
-// js/modules/Player.js
-/**
- * Класс игрока
- */
-class Player {
-    constructor(x, y) {
+// Класс игрока
+export class Player {
+    constructor(x, y, debugMode = false) {
         this.x = x;
         this.y = y;
         this.width = 20;
@@ -12,6 +9,8 @@ class Player {
         this.runSpeed = 4;
         this.color = '#4CAF50';
         this.direction = 0; // 0: вправо, 1: влево, 2: вверх, 3: вниз
+        this.debugMode = debugMode;
+        this.collisionCount = 0;
     }
     
     /**
@@ -57,6 +56,9 @@ class Player {
         for (const wall of walls) {
             if (this.checkCollision(wall)) {
                 this.x -= moveX;
+                if (this.debugMode) {
+                    this.reportCollision(wall, 'X');
+                }
                 break;
             }
         }
@@ -66,6 +68,9 @@ class Player {
         for (const wall of walls) {
             if (this.checkCollision(wall)) {
                 this.y -= moveY;
+                if (this.debugMode) {
+                    this.reportCollision(wall, 'Y');
+                }
                 break;
             }
         }
@@ -73,6 +78,14 @@ class Player {
         // Ограничение движения в пределах canvas
         this.x = Math.max(0, Math.min(this.x, 800 - this.width));
         this.y = Math.max(0, Math.min(this.y, 500 - this.height));
+    }
+    
+    /**
+     * Сообщение о столкновении
+     */
+    reportCollision(wall, axis) {
+        this.collisionCount++;
+        console.log(`Игрок столкнулся со стеной! Позиция: [${Math.round(this.x)}, ${Math.round(this.y)}], Стена: [${wall}], Ось: ${axis}, Всего столкновений: ${this.collisionCount}`);
     }
     
     /**
@@ -116,5 +129,3 @@ class Player {
         }
     }
 }
-
-export default Player;
