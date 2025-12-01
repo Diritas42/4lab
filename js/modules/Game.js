@@ -23,7 +23,7 @@ export class Game {
         this.detectionLevel = 0;
         this.isAlertMode = false;
         this.massEliminationDetected = false;
-        this.debugMode = true; // Включить режим отладки
+        this.debugMode = false; // Включить режим отладки
         
         this.initLevels();
     }
@@ -35,12 +35,6 @@ export class Game {
         this.setupEventListeners();
         this.startLevel(this.currentLevel);
         this.gameLoop();
-        
-        // Отладочная информация
-        if (this.debugMode) {
-            console.log("=== ДЕБАГ РЕЖИМ ВКЛЮЧЕН ===");
-            console.log("Столкновения будут выводиться в консоль");
-        }
     }
     
     /**
@@ -312,6 +306,15 @@ export class Game {
             // Переключение режима отладки по F3
             if (e.code === 'F3') {
                 this.debugMode = !this.debugMode;
+                
+                if (this.player) {
+                    this.player.debugMode = this.debugMode;
+                }
+                
+                this.enemies.forEach(enemy => {
+                    enemy.debugMode = this.debugMode;
+                });
+                
                 console.log(`Режим отладки: ${this.debugMode ? 'ВКЛ' : 'ВЫКЛ'}`);
             }
         });
@@ -606,3 +609,4 @@ export class Game {
         }
     }
 }
+
